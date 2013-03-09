@@ -8,11 +8,13 @@
 	</style>
 	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
 	<script>
+		var number = 10;
 		var canvas = null;
 		var ctx = null;
 		var chairs = [];
-		var people = [];
-		var playing = false;
+		var players = [];
+		var playing = true;
+		var duration;
 		
 		// 2. This code loads the IFrame Player API code asynchronously.
         var tag = document.createElement('script');
@@ -24,7 +26,6 @@
         //    after the API code downloads.
         var player;
         function onYouTubeIframeAPIReady() {
-        
             player = new YT.Player('player', {
             height: '390',
             width: '640',
@@ -41,16 +42,55 @@
         // 4. The API will call this function when the video player is ready.
         function onPlayerReady(event) {
             $('#player').hide();
-            event.target.playVideo();
             playing = true;
-            var duration = Math.random() * 1000 * 15 + 2000;
+            event.target.playVideo();
+            duration = Math.random() * 1000 * 15 + 2000;
             setTimeout('pause()', duration);
             
         }
         
-        function pause() {
-            player.pauseVideo();  
+        function square(x) {
+        	return x * x;
         }
+        
+        function pause() {
+            player.pauseVideo();
+            date = new Date();
+            playing = false; 
+            clearInterval(myVar);
+            $('body').click(function() {
+            	d = new Date() - date;
+            	players[0].delay = d;
+            	alert(players[0].delay);}
+            );
+            
+            for (var i = 1; i < players.length; i++) {
+                players[i].delay = Math.random() * 1000 + 100;
+            }
+            
+            
+            var closest = chairs[0];
+            for (var i = 0; i < players.length; i++) {
+            	player = players[i];
+				for (var j = 0; j < chairs.length; j++) {
+					chair = chairs[i];
+                	if ((square(player.x - chair.x) + square(player.y - chair.y)) < (square(player.x - closest.x) + square(player.y - closest.y))) {
+                		closest = chair[i];
+                		player.chair = closest;
+                	}
+                }
+                ctx.drawImage(player.picture, player.chair.x, player.chair.y);
+            }
+            
+            
+            
+        }
+		
+		
+		var radius = 130;
+		var outer_radius = 210;
+		var x_offset = 450;
+		var y_offset = 220;
 		
 		function setup(number) {
 			canvas = document.createElement('canvas');
@@ -58,25 +98,19 @@
 			canvas.width = 800;
 			canvas.height = 800;
 			$('#playground').append(canvas);
-			var x_offset = 450;
-			var y_offset = 220;
 			
-			ctx.font = "bold 12px sans-serif";
-			ctx.fillText("Press left or right", 440, 240);
-			ctx.fillText("when music stops", 440, 270);
 			
 			var angle = 0;
-			var radius = 13 * number;
 			var index = 0;
 			var drawChairs = function() {
 				var x = Math.sin(angle) * radius + x_offset;
 				var y = Math.cos(angle) * radius + y_offset;
 				angle = angle + 2*Math.PI/(number - 1);
-				ctx.drawImage(chairs[index].picture, x, y);
+				//ctx.drawImage(chairs[index].picture, x, y);
 				chairs[index].x = x;
 				chairs[index].y = y;
 				index++;
-			};
+			}
 			for (var i = 0; i < number - 1; i++) {//initialize chair objects
 			    var img = new Image();
 			    img.onload = drawChairs;
@@ -87,21 +121,24 @@
 			
 			
 			var outer_angle = 0;
-			var outer_radius = 13 * number + 80;
 			var human_index = 0;
 			var drawPlayer = function() {
 				var x = Math.sin(outer_angle) * outer_radius + x_offset;
 				var y = Math.cos(outer_angle) * outer_radius + y_offset;
+				players[human_index].x = x;
+				players[human_index].y = y;
+				players[human_index].angle = outer_angle;
+				
 				outer_angle = outer_angle + 2*Math.PI/number;
-				//alert(people[human_index].picture);
-				ctx.drawImage(people[human_index].picture, x, y);
-				people[human_index].x = x;
-				people[human_index].y = y;
+				//ctx.drawImage(players[human_index].picture, x, y);
 				human_index++;
 			}
-			for (var i = 0; i < number; i++) {//initialize people objects
+			for (var i = 0; i < number; i++) {//initialize players objects
 			    var img = new Image();
-			    img.onload = drawPlayer;
+			    img.onload = function() {
+			    	drawPlayer();	
+      			}
+			    	
 			    if (i == 0) {
         			img.src = '/static/you.jpg';
         			var person = new Human(img);
@@ -110,45 +147,66 @@
         			img.src = '/static/smiley.jpg';
         			var person = new Player(img);
         		}        		
-      			people.push(person);	
+      			players.push(person);
+      			
+			}
+			
+			
+			function Player(picture) {
+				this.picture = picture;
+				this.chair = null;
+			}
+			
+			
+			function Human(picture) {
+				this.picture = picture;
+				this.chair = null;
+				this.human = true;
+				
+			}
+			
+			
+			function Chair(picture) {
+				this.picture = picture;
+				this.person = null;
+				this.x = 0;
+				this.y = 0;
 			}
 			
 		};
 		
-		
-		function Player(picture) {
-		    this.picture = picture;
-		    this.chair = null;
+		var myVar = setInterval(function(){animate()},50);
+		function animate(){
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			
+			ctx.font = "bold 12px sans-serif";
+			ctx.fillText("Click screen", 450, 240);
+			ctx.fillText("when music stops", 440, 270);
+			for (var i = 0; i < chairs.length; i++) {
+				var chair = chairs[i];
+				ctx.drawImage(chair.picture, chair.x, chair.y);
+			}
+			
+			for (var i = 0; i < players.length; i++) {
+				var person = players[i];
+				ctx.drawImage(person.picture, person.x, person.y);
+				person.angle = person.angle + Math.PI/360;
+				person.x = Math.sin(person.angle) * outer_radius + x_offset;
+				person.y = Math.cos(person.angle) * outer_radius + y_offset;
+				
+			}
+			
 		}
+      		
 		
 		
-		function Human(picture) {
-		    this.picture = picture;
-		    this.chair = null;
-		    this.human = true;
 		    
-		}
-		
-		
-		function Chair(picture) {
-		    this.picture = picture;
-		    this.person = null;
-		    this.x = 0;
-		    this.y = 0;
-		}
-		
-		function changePosition() {
-		}
 		
 		function Main() {
-        	setup(10);
-        	while (playing) {
-        	    animate();
-        	}
 			
-			
-			
-			
+			setup(number);
+			return false;
+        	
         };
         
         $(document).ready(Main);
@@ -157,7 +215,9 @@
 </head>
 <body>
  	<div id="playground"></div>
- 	
+ 	<form>
+ 		<input type="submit" value="Next Level">
+ 	</form>
  	<div id="player"></div>
 </body>
 </html>
