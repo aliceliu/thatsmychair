@@ -13,9 +13,10 @@
 		var ctx = null;
 		var chairs = [];
 		var players = [];
-		var playing = true;
 		var duration;
-		
+		var myVar;
+		var started = false;
+			
 		// 2. This code loads the IFrame Player API code asynchronously.
         var tag = document.createElement('script');
         tag.src = "//www.youtube.com/iframe_api";
@@ -33,6 +34,7 @@
             
             events: {
                 'onReady': onPlayerReady,
+                'onStateChange': onStateChange
                 }
             });
             
@@ -42,10 +44,20 @@
         // 4. The API will call this function when the video player is ready.
         function onPlayerReady(event) {
             $('#player').hide();
-            playing = true;
+            
             event.target.playVideo();
-            duration = Math.random() * 1000 * 15 + 2000;
-            setTimeout('pause()', duration);
+            started = true;
+            
+            
+            
+        }
+        
+        function onStateChange(event) {
+            if (started) {
+            	duration = Math.random() * 1000 * 15 + 3000;
+            	setTimeout('pause()', duration);
+            }
+            
             
         }
         
@@ -54,35 +66,66 @@
         }
         
         function pause() {
+        	clearInterval(myVar);
             player.pauseVideo();
             date = new Date();
-            playing = false; 
-            clearInterval(myVar);
-            $('body').click(function() {
+            started = false;
+            
+            $('canvas').click(function() {
+            	
             	d = new Date() - date;
             	players[0].delay = d;
-            	alert(players[0].delay);}
-            );
+            	if (number == 2) {
+            		var r = confirm("Your response time was: " + players[0].delay + ". Restart?");
+            		if (r == true) {
+						number = 10;	
+						
+						
+					}
+					restart(number);
+            	}
+            	else {
+					var r = confirm("Your response time was: " + players[0].delay + ". Next level?");
+					if (r == true) {
+						number -= 1;
+							
+						
+					}
+					restart(number);
+				}
+				
+				
+            });
+            
+            function restart(number) {
+            	ctx.clearRect(0, 0, canvas.width, canvas.height);
+				chairs = [];
+				players = [];
+				setup(number);
+				
+				player.playVideo();
+				started = true;
+            }
+            
             
             for (var i = 1; i < players.length; i++) {
                 players[i].delay = Math.random() * 1000 + 100;
             }
             
             
-            var closest = chairs[0];
-            for (var i = 0; i < players.length; i++) {
+            
+            /*for (var i = 0; i < players.length; i++) {
+            	var closest = chairs[0];
             	player = players[i];
 				for (var j = 0; j < chairs.length; j++) {
 					chair = chairs[i];
                 	if ((square(player.x - chair.x) + square(player.y - chair.y)) < (square(player.x - closest.x) + square(player.y - closest.y))) {
                 		closest = chair[i];
-                		player.chair = closest;
                 	}
+                	player.chair = closest;
                 }
                 ctx.drawImage(player.picture, player.chair.x, player.chair.y);
-            }
-            
-            
+            }*/
             
         }
 		
@@ -97,16 +140,19 @@
 			ctx = canvas.getContext('2d');
 			canvas.width = 800;
 			canvas.height = 800;
-			$('#playground').append(canvas);
-			
-			
+			if ($('#playground').children().length > 0){
+				$('canvas').replaceWith(canvas);
+			}
+			else {
+				$('#playground').append(canvas);
+			}
+
 			var angle = 0;
 			var index = 0;
 			var drawChairs = function() {
 				var x = Math.sin(angle) * radius + x_offset;
 				var y = Math.cos(angle) * radius + y_offset;
 				angle = angle + 2*Math.PI/(number - 1);
-				//ctx.drawImage(chairs[index].picture, x, y);
 				chairs[index].x = x;
 				chairs[index].y = y;
 				index++;
@@ -130,7 +176,6 @@
 				players[human_index].angle = outer_angle;
 				
 				outer_angle = outer_angle + 2*Math.PI/number;
-				//ctx.drawImage(players[human_index].picture, x, y);
 				human_index++;
 			}
 			for (var i = 0; i < number; i++) {//initialize players objects
@@ -157,14 +202,12 @@
 				this.chair = null;
 			}
 			
-			
 			function Human(picture) {
 				this.picture = picture;
 				this.chair = null;
 				this.human = true;
 				
 			}
-			
 			
 			function Chair(picture) {
 				this.picture = picture;
@@ -173,34 +216,30 @@
 				this.y = 0;
 			}
 			
-		};
-		
-		var myVar = setInterval(function(){animate()},50);
-		function animate(){
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
-			
-			ctx.font = "bold 12px sans-serif";
-			ctx.fillText("Click screen", 450, 240);
-			ctx.fillText("when music stops", 440, 270);
-			for (var i = 0; i < chairs.length; i++) {
-				var chair = chairs[i];
-				ctx.drawImage(chair.picture, chair.x, chair.y);
-			}
-			
-			for (var i = 0; i < players.length; i++) {
-				var person = players[i];
-				ctx.drawImage(person.picture, person.x, person.y);
-				person.angle = person.angle + Math.PI/360;
-				person.x = Math.sin(person.angle) * outer_radius + x_offset;
-				person.y = Math.cos(person.angle) * outer_radius + y_offset;
+			function animate(){
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				
+				ctx.font = "bold 12px sans-serif";
+				ctx.fillText("Click screen", 450, 240);
+				ctx.fillText("when music stops", 440, 270);
+				for (var i = 0; i < chairs.length; i++) {
+					var chair = chairs[i];
+					ctx.drawImage(chair.picture, chair.x, chair.y);
+				}
+				
+				for (var i = 0; i < players.length; i++) {
+					var person = players[i];
+					ctx.drawImage(person.picture, person.x, person.y);
+					person.angle = person.angle + Math.PI/360;
+					person.x = Math.sin(person.angle) * outer_radius + x_offset;
+					person.y = Math.cos(person.angle) * outer_radius + y_offset;
+					
+				}
 				
 			}
+			myVar = setInterval(function(){animate()},50);
 			
-		}
-      		
-		
-		
-		    
+		};
 		
 		function Main() {
 			
@@ -215,9 +254,9 @@
 </head>
 <body>
  	<div id="playground"></div>
- 	<form>
+ 	<!--<form>
  		<input type="submit" value="Next Level">
- 	</form>
+ 	</form>-->
  	<div id="player"></div>
 </body>
 </html>
